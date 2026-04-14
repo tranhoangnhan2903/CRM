@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ----------------------------------------------------
+// 1. users & roles
+// ----------------------------------------------------
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g. ADMIN, DOCTOR, RECEPTIONIST, ACCOUNTANT
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Department {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  source      String    @default("CRM")
+  hisCmpId    Int?
+  hisCode     String?   @unique
+  excludeStageReferral Boolean @default(false)
+  users       User[]
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model User {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  passwordHash   String
+  fullName       String
+  roleId         String
+  departmentId   String?
+  source         String       @default("CRM")
+  hisEmployeeId  Int?         @unique
+  hisEmployeeCode String?
+  hisCmpId       Int?
+  syncManaged    Boolean      @default(false)
+  role           Role         @relation(fields: [roleId], references: [id])
+  department     Department?  @relation(fields: [departmentId], references: [id])
+  auditLogs      AuditLog[]
+
+  // References
+  referralsMade  Referral[]   @relation("Referrer")
+  executedOrders ServiceOrder[] @relation("Executor")
+  bookedAppointments   Appointment[] @relation("BookedBy")
+  assignedAppointments Appointment[] @relation("DoctorAssigned")
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// ----------------------------------------------------
+// 2. core clinic setup
+// ----------------------------------------------------
+model Service {
+  id           String         @id @default(uuid())
+  code         String         @unique
+  name         String
+  description  String?
+  price        Float
+  departmentId String?
+  source       String         @default("CRM")
+  hisServiceId Int?           @unique
+  hisCmpId     Int?
+  hisDivision  String?
+  hisRoom      String?
+  hisSrvGroup  String?
+  department   Department?    @relation(fields: [departmentId], references: [id])
+  orders       ServiceOrder[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+// ----------------------------------------------------
+// 3. CRM entities
+// ----------------------------------------------------
+model Customer {
+  id           String        @id @default(uuid())
+  fullName     String
+  phone        String        @unique
+  email        String?
+  address      String?
+  yearOfBirth  Int?
+  gender       String?
+  source       String        @default("CRM")
+  hisCustomerId Int?         @unique
+  hisCustomerCode String?
+  hisCmpId     Int?
+  hisLatestSohId Int?
+  leads        Lead[]
+  appointments Appointment[]
+  referrals    Referral[]    @relation("ReferredCustomer")
+  bills        Bill[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Lead {
+  id         String   @id @default(uuid())
+  customerId String
+  source     String   // e.g. Facebook, Website, Referral
+  status     String   // NEW, CONTACTED, QUALIFIED, CONVERTED, LOST
+  notes      String?
+  customer   Customer @relation(fields: [customerId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Referral {
+  id                 String   @id @default(uuid())
+  referrerId         String   // The user who referred
+  referredCustomerId String   // The customer being referred
+  status             String   // PENDING, SUCCESS, REJECTED
+  
+  referrer           User     @relation("Referrer", fields: [referrerId], references: [id])
+  referredCustomer   Customer @relation("ReferredCustomer", fields: [referredCustomerId], references: [id])
+  
+  commissions        Commission[] // A referral can lead to commission
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Appointment {
+  id          String   @id @default(uuid())
+  customerId  String
+  bookedById  String?
+  doctorId    String?
+  scheduledAt DateTime
+  status      String   // SCHEDULED, COMPLETED, CANCELLED
+  notes       String?
+  
+  customer    Customer @relation(fields: [customerId], references: [id])
+  bookedBy    User?    @relation("BookedBy", fields: [bookedById], references: [id])
+  doctor      User?    @relation("DoctorAssigned", fields: [doctorId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 4. Clinical operations & Billing
+// ----------------------------------------------------
+model Bill {
+  id                  String   @id @default(uuid())
+  customerId          String
+  totalAmount         Float
+  status              String   // DRAFT, PENDING, PAID, CANCELLED
+  stageNo             Int      @default(1)
+  previousBillId      String?
+  transactionAt       DateTime @default(now())
+  payoutRequestStatus String   @default("NONE") // NONE, PENDING, PAID
+  payoutRequestedAt   DateTime?
+  payoutRequestedById String?
+  payoutCompletedAt   DateTime?
+  source              String   @default("CRM")
+  hisSohId            Int?     @unique
+  hisSohCode          String?
+  hisCmpId            Int?
+  hisSrvDivision      String?
+  hisRoom             String?
+  hisSrvGroup         String?
+  
+  customer            Customer @relation(fields: [customerId], references: [id])
+  orders              ServiceOrder[]
+  payments            Payment[]
+  commissions         Commission[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([transactionAt])
+}
+
+model ServiceOrder {
+  id         String   @id @default(uuid())
+  billId     String
+  serviceId  String
+  executorId String?
+  quantity   Int      @default(1)
+  price      Float
+  status     String   // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  source     String   @default("CRM")
+  hisSolId   Int?     @unique
+  hisAssignType String?
+  hisSourceSohId Int?
+  hisSourceSolId Int?
+  hisIntroEmployeeId Int?
+  
+  bill       Bill     @relation(fields: [billId], references: [id])
+  service    Service  @relation(fields: [serviceId], references: [id])
+  executor   User?    @relation("Executor", fields: [executorId], references: [id])
+
+  commissions Commission[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Payment {
+  id         String   @id @default(uuid())
+  billId     String
+  amount     Float
+  method     String   // CASH, TRANSFER, CARD
+  status     String   // PENDING, SUCCESS, FAILED, REFUNDED
+  
+  bill       Bill     @relation(fields: [billId], references: [id])
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 5. Commission schema
+// ----------------------------------------------------
+model CommissionPolicy {
+  id             String    @id @default(uuid())
+  name           String
+  type           String    // REFERRAL, EXECUTOR
+  valueType      String    // PERCENTAGE, FIXED
+  value          Float
+  departmentId   String?
+  serviceId      String?
+  minBillSize    Float?
+  campaignName   String?
+  effectiveFrom  DateTime
+  effectiveTo    DateTime?
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// Executor tiered commission: percentage of service/order value based on daily order count
+// Example: service "Peel da"
+//   Tier 1: minDailyCount=0,  percentage=10  (base: 10% gia tri dich vu)
+//   Tier 2: minDailyCount=5,  percentage=12  (after 5th: 12%)
+//   Tier 3: minDailyCount=10, percentage=15  (after 10th: 15%)
+model ExecutorTier {
+  id             String    @id @default(uuid())
+  name           String
+  serviceId      String?   // null = applies to all services
+  departmentId   String?   // null = applies to all departments
+  minDailyCount  Int       // minimum completed orders TODAY to activate this tier
+  percentage     Float     // percentage of service order value at this tier
+  effectiveFrom  DateTime
+  effectiveTo    DateTime?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Commission {
+  id             String   @id @default(uuid())
+  type           String   // REFERRAL, EXECUTOR
+  amount         Float
+  status         String   // DRAFT, PENDING_APPROVAL, APPROVED, PAID, CANCELLED
+  payoutMonth    String   // e.g. "2026-04"
+  
+  billId         String?
+  serviceOrderId String?
+  referralId     String?
+  userId         String   // Who receives the commission
+  
+  bill           Bill?          @relation(fields: [billId], references: [id])
+  order          ServiceOrder?  @relation(fields: [serviceOrderId], references: [id])
+  referral       Referral?      @relation(fields: [referralId], references: [id])
+  
+  workflows      ApprovalWorkflow[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 6. Workflows and audit logging
+// ----------------------------------------------------
+model ApprovalWorkflow {
+  id           String     @id @default(uuid())
+  commissionId String
+  approverId   String?
+  status       String     // PENDING, APPROVED, REJECTED
+  comments     String?
+  
+  commission   Commission @relation(fields: [commissionId], references: [id])
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String   // e.g. "UPDATE_BILL_STATUS", "APPROVE_COMMISSION"
+  entityType String   // e.g. "Bill", "Commission"
+  entityId   String
+  oldData    Json?
+  newData    Json?
+  
+  user       User?    @relation(fields: [userId], references: [id])
+  
+  createdAt  DateTime @default(now())
+}
+
+model HealthPackage {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  description  String?
+  price        Float?
+  subtype      String?
+  contractId   Int?
+  hisPackageId Int?     @unique
+  hisCmpId     Int?
+  source       String   @default("HIS")
+  syncedAt     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model IntegrationEvent {
+  id              String   @id @default(uuid())
+  externalEventId String?  @unique
+  source          String
+  eventType       String
+  status          String
+  message         String?
+  payload         Json?
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

@@ -1,0 +1,13 @@
+{
+  "app.name": "Clinic CRM",
+  "login.title": "Đăng nhập vào hệ thống quản lý phòng khám",
+  "login.heading": "🏥 Clinic CRM",
+  "login.email": "Email",
+  "login.password": "Mật khẩu",
+  "login.submit": "Đăng nhập",
+  "login.submitting": "Đang xử lý...",
+  "login.helper": "Môi trường nội bộ có xác thực JWT và phân quyền theo vai trò.",
+  "common.cancel": "Hủy",
+  "common.save": "Lưu",
+  "common.search": "Tìm kiếm"
+}
