@@ -156,6 +156,7 @@ model Bill {
   totalAmount         Float
   status              String   // DRAFT, PENDING, PAID, CANCELLED
   stageNo             Int      @default(1)
+  departmentLabel     String   @default("Chưa rõ khoa")
   previousBillId      String?
   transactionAt       DateTime @default(now())
   payoutRequestStatus String   @default("NONE") // NONE, PENDING, PAID

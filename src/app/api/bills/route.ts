@@ -36,33 +36,33 @@ export async function GET(req: NextRequest) {
     ? {}
     : user.role === "DOCTOR"
       ? {
-          OR: [
-            {
-              orders: {
-                some: {
-                  executorId: user.userId,
-                },
+        OR: [
+          {
+            orders: {
+              some: {
+                executorId: user.userId,
               },
             },
-            {
-              commissions: {
-                some: {
-                  userId: user.userId,
-                  type: { in: ["EXECUTOR", "INDICATION", "STAGE_REFERRAL"] },
-                  status: { not: "CANCELLED" },
-                },
-              },
-            },
-          ],
-        }
-      : {
-          customer: {
-            OR: [
-              { referrals: { some: { referrerId: user.userId } } },
-              { appointments: { some: { doctorId: user.userId } } },
-            ],
           },
-        };
+          {
+            commissions: {
+              some: {
+                userId: user.userId,
+                type: { in: ["EXECUTOR", "INDICATION", "STAGE_REFERRAL"] },
+                status: { not: "CANCELLED" },
+              },
+            },
+          },
+        ],
+      }
+      : {
+        customer: {
+          OR: [
+            { referrals: { some: { referrerId: user.userId } } },
+            { appointments: { some: { doctorId: user.userId } } },
+          ],
+        },
+      };
 
   const filters: Record<string, unknown>[] = [accessWhere];
 
@@ -97,23 +97,23 @@ export async function GET(req: NextRequest) {
   const where = filters.length === 1
     ? accessWhere
     : {
-        AND: filters,
-      };
+      AND: filters,
+    };
 
   const [total, bills] = await Promise.all([
     prisma.bill.count({ where }),
     prisma.bill.findMany({
-    where,
-    include: {
-      customer: true,
-      orders: { include: { service: { include: { department: true } }, executor: true } },
-      payments: true,
-      commissions: true,
-      _count: { select: { commissions: true } },
-    },
-    skip: pagination.skip,
-    take: pagination.limit,
-    orderBy: { transactionAt: "desc" },
+      where,
+      include: {
+        customer: true,
+        orders: { include: { service: { include: { department: true } }, executor: true } },
+        payments: true,
+        commissions: true,
+        _count: { select: { commissions: true } },
+      },
+      skip: pagination.skip,
+      take: pagination.limit,
+      orderBy: { transactionAt: "desc" },
     }),
   ]);
 
@@ -137,6 +137,18 @@ export async function POST(req: NextRequest) {
       const previousBill = await prisma.bill.findUnique({ where: { id: previousBillId } });
       if (!previousBill) return err("Previous bill not found");
       resolvedStageNo = previousBill.stageNo + 1;
+    }
+
+    const resolvedOrders = body.orders as Array<{ serviceId: string; executorId?: string; quantity?: number }>;
+
+    // Resolve departmentLabel from services
+    let departmentLabel = "Chưa rõ khoa";
+    if (resolvedOrders.length > 0) {
+      const firstService = await prisma.service.findUnique({
+        where: { id: resolvedOrders[0].serviceId },
+        include: { department: true },
+      });
+      departmentLabel = firstService?.department?.name || departmentLabel;
     }
 
     let totalAmount = 0;
@@ -163,6 +175,7 @@ export async function POST(req: NextRequest) {
         totalAmount,
         status: "DRAFT",
         stageNo: resolvedStageNo,
+        departmentLabel,
         previousBillId: previousBillId || null,
         transactionAt: new Date(),
         orders: { create: orderData },
@@ -218,7 +231,7 @@ export async function PATCH(req: NextRequest) {
       });
       if (!canRequest) return forbidden();
       if (old.status !== "PAID") return err("Only paid bills can be sent for payout");
-      if (old.payoutRequestStatus === "PENDING") return err("Payout already requested for this stage");
+      if (old.payoutRequestStatus === "PENDING") return err("Payout already requested for this bill");
 
       const doctorRelatedCommissions = await prisma.commission.findMany({
         where: {
@@ -227,7 +240,7 @@ export async function PATCH(req: NextRequest) {
           status: { not: "CANCELLED" },
         },
       });
-      if (doctorRelatedCommissions.length === 0) return err("No doctor commission found for this stage");
+      if (doctorRelatedCommissions.length === 0) return err("No doctor commission found for this bill");
 
       const requestedBill = await prisma.bill.update({
         where: { id },
@@ -244,7 +257,7 @@ export async function PATCH(req: NextRequest) {
 
     if (action === "MARK_PAYOUT_PAID") {
       if (!requireRole(user, "ADMIN", "ACCOUNTANT")) return forbidden();
-      if (old.payoutRequestStatus !== "PENDING") return err("This stage is not waiting for payout");
+      if (old.payoutRequestStatus !== "PENDING") return err("This bill is not waiting for payout");
 
       const paidBill = await prisma.bill.update({
         where: { id },
@@ -274,7 +287,7 @@ export async function PATCH(req: NextRequest) {
               commissionId: commission.id,
               approverId: user.userId,
               status: "APPROVED",
-              comments: `Payout completed for bill stage ${paidBill.stageNo}`,
+              comments: `Payout completed for bill ${paidBill.departmentLabel} (stage ${paidBill.stageNo})`,
             },
           });
 

@@ -277,7 +277,7 @@ export default function PoliciesPage() {
           <div className="stat-card">
             <div className="stat-icon cyan">🧾</div>
             <div className="stat-value">{indicationPolicies.length + stageReferralPolicies.length}</div>
-            <div className="stat-label">Chỉ định / Giới thiệu stage</div>
+            <div className="stat-label">Chỉ định / Giới thiệu khoa</div>
           </div>
         </div>
 
@@ -328,7 +328,7 @@ export default function PoliciesPage() {
             />
             <PolicyTable
               items={stageReferralPolicies}
-              label="GIỚI THIỆU STAGE"
+              label="GIỚI THIỆU KHOA"
               color="success"
               onCreate={openCreate}
               onEdit={openEdit}
@@ -370,8 +370,8 @@ export default function PoliciesPage() {
                   <select className="form-input" aria-label="Loại chính sách hoa hồng" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                     <option value="REFERRAL">🤝 Giới thiệu khách</option>
                     <option value="EXECUTOR">⚡ Thực hiện (Executor)</option>
-                    <option value="INDICATION">🧾 Chỉ định trong stage</option>
-                    <option value="STAGE_REFERRAL">➡️ Giới thiệu qua stage sau</option>
+                    <option value="INDICATION">🧾 Chỉ định trong khoa</option>
+                    <option value="STAGE_REFERRAL">➡️ Giới thiệu qua khoa khác</option>
                   </select>
                 </div>
                 <div className="form-group">

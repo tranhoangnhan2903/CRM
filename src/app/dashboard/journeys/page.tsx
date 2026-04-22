@@ -20,12 +20,12 @@ const SORT_LABELS: Record<JourneySortKey, string> = {
   gender: "Giới tính",
   totalAmount: "Tổng số tiền",
   totalDoctorCommission: "Tổng HH BS",
-  journeyCount: "Số stage",
+  journeyCount: "Số khoa",
 };
 
 interface JourneyStage {
   id: string;
-  stageNo: number;
+  departmentLabel: string;
   previousBillId: string | null;
   totalAmount: number;
   status: string;
@@ -41,7 +41,7 @@ interface JourneyStage {
 
 interface JourneyChain {
   rootBillId: string;
-  stageFlow: string;
+  departmentFlow: string;
   totalAmount: number;
   totalDoctorCommission: number;
   stages: JourneyStage[];
@@ -215,7 +215,7 @@ export default function JourneyDashboardPage() {
                 <th>{renderSortableHeader("Giới tính", "gender")}</th>
                 <th>{renderSortableHeader("Tổng số tiền", "totalAmount")}</th>
                 <th>{renderSortableHeader("Tổng HH BS", "totalDoctorCommission")}</th>
-                <th>{renderSortableHeader("Số stage", "journeyCount")}</th>
+                <th>{renderSortableHeader("Số khoa", "journeyCount")}</th>
               </tr>
             </thead>
             <tbody>
@@ -225,7 +225,7 @@ export default function JourneyDashboardPage() {
                 </tr>
               )}
               {!loading && customers.map((customer) => {
-                const stageCount = customer.journeyCount;
+                const khoaCount = customer.journeyCount;
 
                 return (
                   <Fragment key={customer.id}>
@@ -249,7 +249,7 @@ export default function JourneyDashboardPage() {
                       <td>{formatVND(customer.totalAmount)}</td>
                       <td>{formatVND(customer.totalDoctorCommission)}</td>
                       <td>
-                        <span className="badge badge-info">{stageCount} stage</span>
+                        <span className="badge badge-info">{khoaCount} khoa</span>
                       </td>
                     </tr>
 
@@ -271,7 +271,7 @@ export default function JourneyDashboardPage() {
                                   <div>
                                     <h3 style={{ margin: 0 }}>Chuỗi điều trị</h3>
                                     <div style={{ color: "var(--text-secondary)", marginTop: 6 }}>
-                                      {journey.stageFlow}
+                                      {journey.departmentFlow}
                                     </div>
                                   </div>
                                   <div style={{ color: "var(--text-secondary)" }}>
@@ -297,7 +297,7 @@ export default function JourneyDashboardPage() {
                                         }}
                                       >
                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                                          <strong style={{ color: "var(--text-primary)" }}>Stage {stage.stageNo}</strong>
+                                          <strong style={{ color: "var(--text-primary)" }}>{stage.departmentLabel}</strong>
                                           {statusBadge(stage.status)}
                                         </div>
                                         <div style={{ color: "var(--text-secondary)", marginBottom: 6 }}>
@@ -313,7 +313,7 @@ export default function JourneyDashboardPage() {
                                           HH chỉ định: {formatVND(stage.indicationCommissionAmount)}
                                         </div>
                                         <div style={{ color: "var(--text-secondary)", marginBottom: 6 }}>
-                                          HH giới thiệu sang stage sau: {formatVND(stage.stageReferralCommissionAmount)}
+                                          HH giới thiệu sang khoa sau: {formatVND(stage.stageReferralCommissionAmount)}
                                         </div>
                                         <div style={{ color: "var(--text-secondary)", marginBottom: 6 }}>
                                           Dịch vụ: {stage.services.join(", ") || "—"}
@@ -357,7 +357,7 @@ export default function JourneyDashboardPage() {
 
                             {customer.journeys.length === 0 && (
                               <div style={{ color: "var(--text-muted)" }}>
-                                Khách này chưa có stage nào.
+                                Khách này chưa có khoa nào.
                               </div>
                             )}
                           </div>

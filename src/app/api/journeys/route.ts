@@ -7,7 +7,7 @@ import { getPagination, getPaginationMeta } from "@/lib/pagination";
 
 type JourneyBill = {
   id: string;
-  stageNo: number;
+  departmentLabel: string;
   previousBillId: string | null;
   totalAmount: number;
   status: string;
@@ -167,7 +167,7 @@ function buildJourneyChains(bills: JourneyBill[]) {
 
     const currentChildren = children.get(bill.previousBillId) || [];
     currentChildren.push(bill);
-    currentChildren.sort((left, right) => left.stageNo - right.stageNo || getBillJourneyDate(left).getTime() - getBillJourneyDate(right).getTime());
+    currentChildren.sort((left, right) => left.departmentLabel.localeCompare(right.departmentLabel, "vi") || getBillJourneyDate(left).getTime() - getBillJourneyDate(right).getTime());
     children.set(bill.previousBillId, currentChildren);
   });
 
@@ -202,13 +202,13 @@ function buildJourneyChains(bills: JourneyBill[]) {
 
       const stageReferralAmount = nextBill
         ? nextBill.commissions
-            .filter((commission) => (
-              commission.type === "STAGE_REFERRAL"
-              && commission.status !== "CANCELLED"
-              && commission.serviceOrderId
-              && billOrderIds.includes(commission.serviceOrderId)
-            ))
-            .reduce((commissionSum, commission) => commissionSum + commission.amount, 0)
+          .filter((commission) => (
+            commission.type === "STAGE_REFERRAL"
+            && commission.status !== "CANCELLED"
+            && commission.serviceOrderId
+            && billOrderIds.includes(commission.serviceOrderId)
+          ))
+          .reduce((commissionSum, commission) => commissionSum + commission.amount, 0)
         : 0;
 
       return sum + executorAmount + indicationAmount + stageReferralAmount;
@@ -216,7 +216,7 @@ function buildJourneyChains(bills: JourneyBill[]) {
 
     return {
       rootBillId: root.id,
-      stageFlow: chain.map((bill) => `Stage ${bill.stageNo}`).join(" -> "),
+      departmentFlow: chain.map((bill) => bill.departmentLabel).join(" → "),
       totalAmount: chain
         .filter((bill) => bill.status !== "CANCELLED")
         .reduce((sum, bill) => sum + bill.totalAmount, 0),
@@ -236,18 +236,18 @@ function buildJourneyChains(bills: JourneyBill[]) {
               && billOrderIds.includes(commission.serviceOrderId)
             ))),
           ].reduce<Record<string, { doctorName: string; amount: number }>>((acc, commission) => {
-              const linkedOrder = bill.orders.find((order) => order.id === commission.serviceOrderId);
-              const doctorName = linkedOrder?.executor?.fullName || "Chưa gán";
-              const currentPayout = acc[doctorName] ?? { doctorName, amount: 0 };
-              currentPayout.amount += commission.amount;
-              acc[doctorName] = currentPayout;
-              return acc;
-            }, {})
+            const linkedOrder = bill.orders.find((order) => order.id === commission.serviceOrderId);
+            const doctorName = linkedOrder?.executor?.fullName || "Chưa gán";
+            const currentPayout = acc[doctorName] ?? { doctorName, amount: 0 };
+            currentPayout.amount += commission.amount;
+            acc[doctorName] = currentPayout;
+            return acc;
+          }, {})
         );
 
         return {
           id: bill.id,
-          stageNo: bill.stageNo,
+          departmentLabel: bill.departmentLabel,
           previousBillId: bill.previousBillId,
           totalAmount: bill.totalAmount,
           status: bill.status,
@@ -317,17 +317,17 @@ export async function GET(req: NextRequest) {
   const where = privileged
     ? searchFilter
     : {
-        AND: [
-          {
-            OR: [
-              { referrals: { some: { referrerId: user.userId } } },
-              { appointments: { some: { doctorId: user.userId } } },
-              { bills: { some: { orders: { some: { executorId: user.userId } } } } },
-            ],
-          },
-          searchFilter,
-        ],
-      };
+      AND: [
+        {
+          OR: [
+            { referrals: { some: { referrerId: user.userId } } },
+            { appointments: { some: { doctorId: user.userId } } },
+            { bills: { some: { orders: { some: { executorId: user.userId } } } } },
+          ],
+        },
+        searchFilter,
+      ],
+    };
 
   const customerSummaries = await prisma.customer.findMany({
     where,
@@ -407,24 +407,24 @@ export async function GET(req: NextRequest) {
 
   const customers = pageCustomerIds.length > 0
     ? await prisma.customer.findMany({
-        where: {
-          id: { in: pageCustomerIds },
-        },
-        include: {
-          bills: {
-            include: {
-              orders: {
-                include: {
-                  service: true,
-                  executor: true,
-                },
+      where: {
+        id: { in: pageCustomerIds },
+      },
+      include: {
+        bills: {
+          include: {
+            orders: {
+              include: {
+                service: true,
+                executor: true,
               },
-              commissions: true,
             },
-            orderBy: [{ stageNo: "asc" }, { transactionAt: "asc" }],
+            commissions: true,
           },
+          orderBy: [{ departmentLabel: "asc" }, { transactionAt: "asc" }],
         },
-      })
+      },
+    })
     : [];
 
   const customerById = new Map(customers.map((customer) => [customer.id, customer]));

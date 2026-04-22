@@ -10,12 +10,11 @@ interface MyData {
   totalExecutedRevenue: number;
   completedOrders: number;
   payoutRequestSummary: { amount: number; count: number };
-  revenueByStage: Array<{ stageNo: number; revenue: number; orders: number }>;
+  revenueByDepartment: Array<{ departmentLabel: string; revenue: number; orders: number }>;
   recentExecutedOrders: Array<{
     id: string;
     serviceName: string;
     billId: string;
-    stageNo: number;
     departmentName: string;
     revenue: number;
     payoutRequestStatus: string;

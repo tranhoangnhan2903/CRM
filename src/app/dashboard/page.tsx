@@ -12,8 +12,8 @@ interface DashboardData {
   leadStats: Array<{ status: string; _count: number }>;
   topServices: Array<{ name: string; count: number; revenue: number }>;
   commissionByMonth: Array<{ payoutMonth: string; _sum: { amount: number | null }; _count: number }>;
-  stageSummary: Array<{
-    stageNo: number;
+  departmentSummary: Array<{
+    departmentLabel: string;
     billCount: number;
     revenue: number;
     payoutRequestedAmount: number;
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           </div>
           <div className="stat-card">
             <div className="stat-icon amber">📨</div>
-            <div className="stat-value">{formatVND(data.stageSummary.reduce((sum, stage) => sum + stage.payoutRequestedAmount, 0))}</div>
+            <div className="stat-value">{formatVND(data.departmentSummary.reduce((sum, dept) => sum + dept.payoutRequestedAmount, 0))}</div>
             <div className="stat-label">Đang chờ kế toán chi trả</div>
           </div>
           <div className="stat-card">
@@ -121,12 +121,12 @@ export default function DashboardPage() {
 
         <div className="data-table-container" style={{ marginBottom: 20 }}>
           <div className="data-table-header">
-            <h3>🔄 Tổng quan theo stage</h3>
+            <h3>🔄 Tổng quan theo khoa</h3>
           </div>
           <table className="data-table">
             <thead>
               <tr>
-                <th>Stage</th>
+                <th>Khoa</th>
                 <th>Số bill</th>
                 <th>Doanh thu</th>
                 <th>Đã gửi thanh toán</th>
@@ -135,22 +135,22 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {data.stageSummary.map((stage) => (
-                <tr key={stage.stageNo}>
-                  <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>Stage {stage.stageNo}</td>
-                  <td>{stage.billCount}</td>
-                  <td>{formatVND(stage.revenue)}</td>
-                  <td>{formatVND(stage.payoutRequestedAmount)}</td>
-                  <td>{formatVND(stage.payoutPaidAmount)}</td>
+              {data.departmentSummary.map((dept) => (
+                <tr key={dept.departmentLabel}>
+                  <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>{dept.departmentLabel}</td>
+                  <td>{dept.billCount}</td>
+                  <td>{formatVND(dept.revenue)}</td>
+                  <td>{formatVND(dept.payoutRequestedAmount)}</td>
+                  <td>{formatVND(dept.payoutPaidAmount)}</td>
                   <td>
-                    <span className="badge badge-info">{stage.requestCount} stage chờ chi</span>
+                    <span className="badge badge-info">{dept.requestCount} bill chờ chi</span>
                   </td>
                 </tr>
               ))}
-              {data.stageSummary.length === 0 && (
+              {data.departmentSummary.length === 0 && (
                 <tr>
                   <td colSpan={6} className="text-center" style={{ padding: 32, color: "var(--text-muted)" }}>
-                    Chưa có dữ liệu stage
+                    Chưa có dữ liệu khoa
                   </td>
                 </tr>
               )}

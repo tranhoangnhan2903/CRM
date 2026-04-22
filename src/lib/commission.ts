@@ -119,9 +119,9 @@ async function findBestBillPolicy(
 ) {
   const scopes = bill.orders.length > 0
     ? bill.orders.map((order) => ({
-        serviceId: order.serviceId,
-        departmentId: order.service.departmentId,
-      }))
+      serviceId: order.serviceId,
+      departmentId: order.service.departmentId,
+    }))
     : [{ serviceId: null, departmentId: null }];
 
   const candidates = await Promise.all(
@@ -152,7 +152,7 @@ async function findBestBillPolicy(
 
 /**
  * Hoa hồng giới thiệu khách vào hệ thống.
- * Đây là referral kiểu sale / người giới thiệu khách, khác với referral giữa các stage.
+ * Đây là referral kiểu sale / người giới thiệu khách, khác với referral giữa các khoa.
  */
 export async function createReferralCommission(billId: string) {
   const bill = await prisma.bill.findUnique({
@@ -216,7 +216,7 @@ export async function createReferralCommission(billId: string) {
 }
 
 /**
- * Hoa hồng thực hiện của bác sĩ theo từng service order trong stage.
+ * Hoa hồng thực hiện của bác sĩ theo từng service order.
  */
 export async function createExecutorCommission(serviceOrderId: string) {
   const order = await prisma.serviceOrder.findUnique({
@@ -345,9 +345,9 @@ export async function createExecutorCommission(serviceOrderId: string) {
 }
 
 /**
- * Hoa hồng chỉ định trong chính stage hiện tại.
+ * Hoa hồng chỉ định khoa hiện tại.
  * Rule:
- * - Tính trên bill của stage đó.
+ * - Tính trên bill của khoa đó.
  * - Ghi nhận theo từng service order để tách được bác sĩ nào nhận bao nhiêu.
  */
 export async function createIndicationCommissionsForBill(billId: string) {
@@ -423,11 +423,11 @@ export async function createIndicationCommissionsForBill(billId: string) {
 }
 
 /**
- * Hoa hồng giới thiệu giữa các stage.
+ * Hoa hồng giới thiệu giữa các khoa.
  * Rule:
- * - Tính trên bill của stage kế tiếp.
- * - Trả cho người thực hiện của stage trước.
- * - Chia theo tỷ trọng doanh thu của từng order ở stage trước.
+ * - Tính trên bill của khoa kế tiếp.
+ * - Trả cho người thực hiện của khoa trước.
+ * - Chia theo tỷ trọng doanh thu của từng order ở khoa trước.
  */
 export async function createStageReferralCommissionsForBill(billId: string) {
   const bill = await prisma.bill.findUnique({
@@ -560,7 +560,7 @@ export async function createStageReferralCommissionsForBill(billId: string) {
         introducerEmployeeId
         && !currentExecutorEmployeeIds.has(introducerEmployeeId)
       ) {
-        // Rule mới: bill/stage sau chỉ ăn theo phần chỉ định của bác sĩ khác,
+        // Rule mới: bill/khoa sau chỉ ăn theo phần chỉ định của bác sĩ khác,
         // không còn fallback chia đều toàn bộ bill trước đó.
         const introducerSourceOrders = sourceOrdersByExecutorEmployeeId.get(introducerEmployeeId) || [];
         const targetAmount = targetOrder.price * targetOrder.quantity;
@@ -627,10 +627,10 @@ export async function createStageReferralCommissionsForBill(billId: string) {
 }
 
 /**
- * Tất cả commission phát sinh khi một bill/stage đã PAID:
+ * Tất cả commission phát sinh khi một bill/khoa đã PAID:
  * - Referral khách vào hệ thống
- * - Chỉ định trong stage
- * - Giới thiệu sang stage kế tiếp
+ * - Chỉ định trong khoa
+ * - Giới thiệu sang khoa kế tiếp
  */
 export async function createBillPaidCommissions(billId: string) {
   const [customerReferrals, indicationCommissions, stageReferralCommissions] = await Promise.all([

@@ -453,6 +453,7 @@ export async function upsertExamBill(
   });
   const billStatus = mapHisStatusToBillStatus(exam.status);
   const stageNo = previousBill ? previousBill.stageNo + 1 : 1;
+  const departmentLabel = exam.divisionName || exam.divisionCode || "Chưa rõ khoa";
   const transactionAt = exam.trxDate || exam.regDate || existing?.transactionAt || new Date();
   let commissionInputsChanged = !existing
     || existing.previousBillId !== (previousBill?.id || null)
@@ -462,39 +463,41 @@ export async function upsertExamBill(
 
   const bill = existing
     ? await prisma.bill.update({
-        where: { id: existing.id },
-        data: {
-          customerId: params.customerId,
-          totalAmount: exam.totalAmount,
-          status: billStatus,
-          previousBillId: previousBill?.id || null,
-          stageNo,
-          transactionAt,
-          source,
-          hisSohCode: exam.hisSohCode,
-          hisCmpId: exam.cmpId,
-          hisSrvDivision: exam.divisionCode,
-          hisRoom: exam.room,
-          hisSrvGroup: exam.serviceGroup,
-        },
-      })
+      where: { id: existing.id },
+      data: {
+        customerId: params.customerId,
+        totalAmount: exam.totalAmount,
+        status: billStatus,
+        previousBillId: previousBill?.id || null,
+        stageNo,
+        departmentLabel,
+        transactionAt,
+        source,
+        hisSohCode: exam.hisSohCode,
+        hisCmpId: exam.cmpId,
+        hisSrvDivision: exam.divisionCode,
+        hisRoom: exam.room,
+        hisSrvGroup: exam.serviceGroup,
+      },
+    })
     : await prisma.bill.create({
-        data: {
-          customerId: params.customerId,
-          totalAmount: exam.totalAmount,
-          status: billStatus,
-          previousBillId: previousBill?.id || null,
-          stageNo,
-          transactionAt,
-          source,
-          hisSohId: exam.hisSohId,
-          hisSohCode: exam.hisSohCode,
-          hisCmpId: exam.cmpId,
-          hisSrvDivision: exam.divisionCode,
-          hisRoom: exam.room,
-          hisSrvGroup: exam.serviceGroup,
-        },
-      });
+      data: {
+        customerId: params.customerId,
+        totalAmount: exam.totalAmount,
+        status: billStatus,
+        previousBillId: previousBill?.id || null,
+        stageNo,
+        departmentLabel,
+        transactionAt,
+        source,
+        hisSohId: exam.hisSohId,
+        hisSohCode: exam.hisSohCode,
+        hisCmpId: exam.cmpId,
+        hisSrvDivision: exam.divisionCode,
+        hisRoom: exam.room,
+        hisSrvGroup: exam.serviceGroup,
+      },
+    });
 
   let calculatedTotal = 0;
 
@@ -503,12 +506,12 @@ export async function upsertExamBill(
     const service = await upsertHisService(rawOrder, { source });
     const executor = mappedOrder.performerId
       ? await upsertHisUser({
-          EMPID: mappedOrder.performerId,
-          EMPNAME: mappedOrder.performerName,
-          CMPID: exam.cmpId,
-          DIVISION: exam.divisionCode,
-          DIVISION_STR: exam.divisionName,
-        }, "DOCTOR", { source })
+        EMPID: mappedOrder.performerId,
+        EMPNAME: mappedOrder.performerName,
+        CMPID: exam.cmpId,
+        DIVISION: exam.divisionCode,
+        DIVISION_STR: exam.divisionName,
+      }, "DOCTOR", { source })
       : null;
 
     const orderStatus = mapHisStatusToOrderStatus(mappedOrder.status, billStatus);
@@ -517,12 +520,12 @@ export async function upsertExamBill(
     const existingOrder = mappedOrder.hisSolId
       ? await prisma.serviceOrder.findFirst({ where: { hisSolId: mappedOrder.hisSolId } })
       : await prisma.serviceOrder.findFirst({
-          where: {
-            billId: bill.id,
-            serviceId: service.id,
-            executorId: executor?.id || null,
-          },
-        });
+        where: {
+          billId: bill.id,
+          serviceId: service.id,
+          executorId: executor?.id || null,
+        },
+      });
 
     const orderData = {
       billId: bill.id,

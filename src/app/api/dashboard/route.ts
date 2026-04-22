@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.bill.findMany({
       select: {
-        stageNo: true,
+        departmentLabel: true,
         totalAmount: true,
         payoutRequestStatus: true,
         commissions: {
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: [{ stageNo: "asc" }, { transactionAt: "desc" }],
+      orderBy: [{ departmentLabel: "asc" }, { transactionAt: "desc" }],
     }),
     prisma.commission.groupBy({
       by: ["userId"],
@@ -139,17 +139,18 @@ export async function GET(req: NextRequest) {
     }, {})
   ).sort((a, b) => b.count - a.count).slice(0, 5);
 
-  const stageSummary = Object.values(
-    stageBills.reduce<Record<number, {
-      stageNo: number;
+  const departmentSummary = Object.values(
+    stageBills.reduce<Record<string, {
+      departmentLabel: string;
       billCount: number;
       revenue: number;
       payoutRequestedAmount: number;
       payoutPaidAmount: number;
       requestCount: number;
     }>>((acc, bill) => {
-      const current = acc[bill.stageNo] ?? {
-        stageNo: bill.stageNo,
+      const label = bill.departmentLabel;
+      const current = acc[label] ?? {
+        departmentLabel: label,
         billCount: 0,
         revenue: 0,
         payoutRequestedAmount: 0,
@@ -169,17 +170,17 @@ export async function GET(req: NextRequest) {
       if (bill.payoutRequestStatus === "PAID") {
         current.payoutPaidAmount += doctorCommissionAmount;
       }
-      acc[bill.stageNo] = current;
+      acc[label] = current;
       return acc;
     }, {})
-  ).sort((a, b) => a.stageNo - b.stageNo);
+  ).sort((a, b) => a.departmentLabel.localeCompare(b.departmentLabel, "vi"));
 
   const doctorIds = pendingCommissionGroups.map((commission) => commission.userId);
   const doctorUsers = doctorIds.length > 0
     ? await prisma.user.findMany({
-        where: { id: { in: doctorIds } },
-        select: { id: true, fullName: true },
-      })
+      where: { id: { in: doctorIds } },
+      select: { id: true, fullName: true },
+    })
     : [];
   const doctorNameMap = new Map(doctorUsers.map((doctor) => [doctor.id, doctor.fullName]));
 
@@ -222,7 +223,7 @@ export async function GET(req: NextRequest) {
     monthlyRevenue,
     topServices: serviceDetails,
     commissionByMonth,
-    stageSummary,
+    departmentSummary,
     payoutQueue,
     doctorLeaderboard,
   });

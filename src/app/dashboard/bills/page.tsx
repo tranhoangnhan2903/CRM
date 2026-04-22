@@ -60,7 +60,7 @@ function payoutBadge(status: string) {
 
 interface Bill {
   id: string;
-  stageNo: number;
+  departmentLabel: string;
   previousBillId: string | null;
   totalAmount: number;
   status: string;
@@ -369,13 +369,13 @@ export default function BillsPage() {
     setCreatingStage(false);
 
     if (!result.success) {
-      setNotice({ type: "error", message: result.error || "Không thể tạo stage tiếp theo" });
+      setNotice({ type: "error", message: result.error || "Không thể tạo khoa tiếp theo" });
       return;
     }
 
     setNotice({
       type: "success",
-      message: `Đã tạo Stage ${result.data.stageNo} cho khách ${stageSourceBill.customer.fullName}`,
+      message: `Đã tạo khoa mới (${result.data.departmentLabel}) cho khách ${stageSourceBill.customer.fullName}`,
     });
     closeCreateStageModal();
     setExpandedId(result.data.id);
@@ -604,7 +604,7 @@ export default function BillsPage() {
           <div className="stat-card">
             <div className="stat-icon cyan">🔄</div>
             <div className="stat-value">{isDoctorView ? doctorCustomerGroups.length : bills.length}</div>
-            <div className="stat-label">{isDoctorView ? "Số khách đang theo dõi" : "Số bill / stage"}</div>
+            <div className="stat-label">{isDoctorView ? "Số khách đang theo dõi" : "Số bill / khoa"}</div>
           </div>
         </div>
 
@@ -680,7 +680,7 @@ export default function BillsPage() {
 
         <div className="data-table-container">
           {isDoctorView ? (
-          <table className="data-table">
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Khách</th>
@@ -930,13 +930,13 @@ export default function BillsPage() {
                       >
                         <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>{bill.customer.fullName}</td>
                         <td>
-                          <div>Stage {bill.stageNo}</div>
+                          <div>{bill.departmentLabel}</div>
                           {bill.previousBillId && (
-                            <div style={{ color: "var(--text-muted)", fontSize: 12 }}>Nối stage trước</div>
+                            <div style={{ color: "var(--text-muted)", fontSize: 12 }}>Nối từ khoa trước</div>
                           )}
                           {nextStageBill && (
                             <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                              Đã nối sang Stage {nextStageBill.stageNo}
+                              Đã nối sang {nextStageBill.departmentLabel}
                             </div>
                           )}
                         </td>
@@ -1026,7 +1026,7 @@ export default function BillsPage() {
                       {expandedId === bill.id && (
                         <tr>
                           <td colSpan={8} style={{ background: "var(--bg-secondary)", padding: 20 }}>
-                            <h4 style={{ marginBottom: 12 }}>Chi tiết dịch vụ trong stage {bill.stageNo}</h4>
+                            <h4 style={{ marginBottom: 12 }}>Chi tiết dịch vụ - {bill.departmentLabel}</h4>
                             <table className="data-table" style={{ marginBottom: 0 }}>
                               <thead>
                                 <tr>
@@ -1073,7 +1073,7 @@ export default function BillsPage() {
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
                               <div>
-                                <h4 style={{ marginBottom: 8 }}>Tổng hợp thanh toán stage</h4>
+                                <h4 style={{ marginBottom: 8 }}>Tổng hợp thanh toán</h4>
                                 <div style={{ color: "var(--text-secondary)" }}>
                                   Doanh thu bác sĩ: {formatVND(doctorRevenue)}
                                 </div>
@@ -1085,7 +1085,7 @@ export default function BillsPage() {
                                 </div>
                                 {nextStageBill && (
                                   <div style={{ color: "var(--text-secondary)" }}>
-                                    Stage tiếp theo đã tạo: Stage {nextStageBill.stageNo}
+                                    Khoa tiếp theo: {nextStageBill.departmentLabel}
                                   </div>
                                 )}
                               </div>
@@ -1151,24 +1151,24 @@ export default function BillsPage() {
           }}
           role="button"
           tabIndex={0}
-          aria-label="Đóng hộp thoại tạo stage tiếp theo"
+          aria-label="Đóng hộp thoại nối khoa mới"
         >
           <div
             className="modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Tạo stage tiếp theo"
+            aria-label="Nối khoa mới"
             style={{ maxWidth: 960 }}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => event.stopPropagation()}
           >
-            <h2>🔀 Tạo stage tiếp theo</h2>
+            <h2>🔀 Nối khoa mới</h2>
             <div style={{ marginBottom: 16, color: "var(--text-secondary)" }}>
               Khách: <strong style={{ color: "var(--text-primary)" }}>{stageSourceBill.customer.fullName}</strong>
               {" · "}
-              Bill nguồn: <strong style={{ color: "var(--text-primary)" }}>Stage {stageSourceBill.stageNo}</strong>
+              Bill nguồn: <strong style={{ color: "var(--text-primary)" }}>{stageSourceBill.departmentLabel}</strong>
               {" → "}
-              Tạo mới: <strong style={{ color: "var(--text-primary)" }}>Stage {stageSourceBill.stageNo + 1}</strong>
+              Tạo mới: <strong style={{ color: "var(--text-primary)" }}>khoa kế tiếp</strong>
             </div>
 
             <form onSubmit={(event) => void submitCreateStage(event)}>
@@ -1263,7 +1263,7 @@ export default function BillsPage() {
                   + Thêm dịch vụ
                 </button>
                 <div style={{ color: "var(--text-secondary)" }}>
-                  Tạm tính stage mới: <strong style={{ color: "var(--text-primary)" }}>{formatVND(stageDraftTotal)}</strong>
+                  Tạm tính khoa mới: <strong style={{ color: "var(--text-primary)" }}>{formatVND(stageDraftTotal)}</strong>
                 </div>
               </div>
 
@@ -1272,7 +1272,7 @@ export default function BillsPage() {
                   Hủy
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={creatingStage}>
-                  {creatingStage ? "Đang tạo..." : `Tạo Stage ${stageSourceBill.stageNo + 1}`}
+                  {creatingStage ? "Đang tạo..." : "Nối khoa mới"}
                 </button>
               </div>
             </form>

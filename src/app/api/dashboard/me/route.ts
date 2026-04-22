@@ -76,16 +76,16 @@ export async function GET(req: NextRequest) {
     0
   );
 
-  const revenueByStage = Object.values(
-    myExecutedOrders.reduce<Record<number, { stageNo: number; revenue: number; orders: number }>>((acc, order) => {
-      const stageNo = order.bill?.stageNo ?? 1;
-      const current = acc[stageNo] ?? { stageNo, revenue: 0, orders: 0 };
+  const revenueByDepartment = Object.values(
+    myExecutedOrders.reduce<Record<string, { departmentLabel: string; revenue: number; orders: number }>>((acc, order) => {
+      const deptLabel = order.service.department?.name || "Chưa rõ khoa";
+      const current = acc[deptLabel] ?? { departmentLabel: deptLabel, revenue: 0, orders: 0 };
       current.revenue += order.price * order.quantity;
       current.orders += 1;
-      acc[stageNo] = current;
+      acc[deptLabel] = current;
       return acc;
     }, {})
-  ).sort((a, b) => a.stageNo - b.stageNo);
+  ).sort((a, b) => a.departmentLabel.localeCompare(b.departmentLabel, "vi"));
 
   const payoutRequestSummary = await prisma.commission.aggregate({
     where: {
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
     },
     totalExecutedRevenue,
     completedOrders: myExecutedOrders.length,
-    revenueByStage,
+    revenueByDepartment,
     payoutRequestSummary: {
       amount: payoutRequestSummary._sum.amount || 0,
       count: payoutRequestSummary._count || 0,
@@ -118,7 +118,6 @@ export async function GET(req: NextRequest) {
       id: order.id,
       serviceName: order.service.name,
       billId: order.billId,
-      stageNo: order.bill?.stageNo ?? 1,
       departmentName: order.service.department?.name || "Chưa rõ khoa",
       revenue: order.price * order.quantity,
       payoutRequestStatus: order.bill?.payoutRequestStatus ?? "NONE",

@@ -31,7 +31,7 @@ function commissionTypeLabel(type: string) {
   if (type === "REFERRAL") return { className: "badge-info", label: "Giới thiệu khách" };
   if (type === "EXECUTOR") return { className: "badge-success", label: "Thực hiện" };
   if (type === "INDICATION") return { className: "badge-warning", label: "Chỉ định" };
-  if (type === "STAGE_REFERRAL") return { className: "badge-info", label: "Giới thiệu stage" };
+  if (type === "STAGE_REFERRAL") return { className: "badge-info", label: "Giới thiệu khoa" };
   return { className: "badge-default", label: type };
 }
 
@@ -85,27 +85,27 @@ export default function CommissionsPage() {
     <>
       <div className="top-header"><h1>💰 Hoa hồng</h1></div>
       <div className="page-content">
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="stats-grid" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
           <div className="stat-card">
             <div className="stat-icon green">💰</div>
             <div className="stat-value">{formatVND(totalAmount)}</div>
-            <div className="stat-label">Tổng ({commissions.filter(c=>c.status!=="CANCELLED").length} giao dịch)</div>
+            <div className="stat-label">Tổng ({commissions.filter(c => c.status !== "CANCELLED").length} giao dịch)</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon amber">⏳</div>
-            <div className="stat-value">{commissions.filter(c=>c.status==="PENDING_APPROVAL").length}</div>
+            <div className="stat-value">{commissions.filter(c => c.status === "PENDING_APPROVAL").length}</div>
             <div className="stat-label">Chờ duyệt</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon cyan">✅</div>
-            <div className="stat-value">{commissions.filter(c=>c.status==="PAID").length}</div>
+            <div className="stat-value">{commissions.filter(c => c.status === "PAID").length}</div>
             <div className="stat-label">Đã thanh toán</div>
           </div>
         </div>
 
         <div className="flex gap-4 mb-4">
-          <input type="month" className="form-input" style={{width:200}} value={monthFilter} onChange={e => setMonthFilter(e.target.value)} aria-label="Lọc hoa hồng theo tháng" />
-          <select className="form-input" style={{width:200}} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Lọc hoa hồng theo trạng thái">
+          <input type="month" className="form-input" style={{ width: 200 }} value={monthFilter} onChange={e => setMonthFilter(e.target.value)} aria-label="Lọc hoa hồng theo tháng" />
+          <select className="form-input" style={{ width: 200 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Lọc hoa hồng theo trạng thái">
             <option value="">Tất cả trạng thái</option>
             <option value="PENDING_APPROVAL">Chờ duyệt</option>
             <option value="APPROVED">Đã duyệt</option>
@@ -124,8 +124,8 @@ export default function CommissionsPage() {
               {!loading && !sessionLoading && commissions.map(c => (
                 <tr key={c.id}>
                   <td><span className={`badge ${commissionTypeLabel(c.type).className}`}>{commissionTypeLabel(c.type).label}</span></td>
-                  <td style={{color:"var(--text-primary)"}}>{c.bill?.customer?.fullName || c.order?.service?.name || "—"}</td>
-                  <td style={{fontWeight:600}}>{formatVND(c.amount)}</td>
+                  <td style={{ color: "var(--text-primary)" }}>{c.bill?.customer?.fullName || c.order?.service?.name || "—"}</td>
+                  <td style={{ fontWeight: 600 }}>{formatVND(c.amount)}</td>
                   <td>{c.payoutMonth}</td>
                   <td>{statusBadge(c.status)}</td>
                   <td>{new Date(c.createdAt).toLocaleDateString("vi")}</td>
@@ -142,7 +142,7 @@ export default function CommissionsPage() {
                   )}
                 </tr>
               ))}
-              {!loading && !sessionLoading && commissions.length === 0 && <tr><td colSpan={7} className="text-center" style={{padding:40, color:"var(--text-muted)"}}>Chưa có hoa hồng</td></tr>}
+              {!loading && !sessionLoading && commissions.length === 0 && <tr><td colSpan={7} className="text-center" style={{ padding: 40, color: "var(--text-muted)" }}>Chưa có hoa hồng</td></tr>}
             </tbody>
           </table>
         </div>
